@@ -1,0 +1,10 @@
+[
+    {
+        "name":  "blnenabled",
+        "value":  "{{form.enabled}}"
+    },
+    {
+        "name":  "userPrincipalName",
+        "value":  "{{form.gridUsers.UserPrincipalName}}"
+    }
+]
