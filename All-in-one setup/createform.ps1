@@ -1,13 +1,12 @@
 # Set TLS to accept TLS, TLS 1.1 and TLS 1.2
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls12
-
 #HelloID variables
 #Note: when running this script inside HelloID; portalUrl and API credentials are provided automatically (generate and save API credentials first in your admin panel!)
 $portalUrl = "https://CUSTOMER.helloid.com"
 $apiKey = "API_KEY"
 $apiSecret = "API_SECRET"
 $delegatedFormAccessGroupNames = @("Users") #Only unique names are supported. Groups must exist!
-$delegatedFormCategories = @("Azure Active Directory","User Management") #Only unique names are supported. Categories will be created if not exists
+$delegatedFormCategories = @("Active Directory","User Management","Azure Active Directory") #Only unique names are supported. Categories will be created if not exists
 $script:debugLogging = $false #Default value: $false. If $true, the HelloID resource GUIDs will be shown in the logging
 $script:duplicateForm = $false #Default value: $false. If $true, the HelloID resource names will be changed to import a duplicate Form
 $script:duplicateFormSuffix = "_tmp" #the suffix will be added to all HelloID resource names to generate a duplicate form with different resource names
@@ -16,44 +15,18 @@ $script:duplicateFormSuffix = "_tmp" #the suffix will be added to all HelloID re
 #NOTE: You can also update the HelloID Global variable values afterwards in the HelloID Admin Portal: https://<CUSTOMER>.helloid.com/admin/variablelibrary
 $globalHelloIDVariables = [System.Collections.Generic.List[object]]@();
 
-#Global variable #1 >> AADAppId
+#Global variable #1 >> ADusersSearchOU
 $tmpName = @'
-AADAppId
+ADusersSearchOU
 '@ 
 $tmpValue = @'
-83ac862d-fe99-4bdc-8d2e-87405fdb2379
-'@ 
-$globalHelloIDVariables.Add([PSCustomObject]@{name = $tmpName; value = $tmpValue; secret = "False"});
-
-#Global variable #2 >> AADAppSecret
-$tmpName = @'
-AADAppSecret
-'@ 
-$tmpValue = "" 
-$globalHelloIDVariables.Add([PSCustomObject]@{name = $tmpName; value = $tmpValue; secret = "True"});
-
-#Global variable #3 >> AADtenantID
-$tmpName = @'
-AADtenantID
-'@ 
-$tmpValue = @'
-65fc161b-0c41-4cde-9908-dabf3cad26b6
-'@ 
-$globalHelloIDVariables.Add([PSCustomObject]@{name = $tmpName; value = $tmpValue; secret = "False"});
-
-#Global variable #4 >> companyName
-$tmpName = @'
-companyName
-'@ 
-$tmpValue = @'
-{{company.name}}
+[{ "OU": "OU=Disabled Users,OU=Users,OU=Resources,DC=schoulens,DC=nl"},{ "OU": "OU=Users,OU=Resources,DC=schoulens,DC=nl"}]
 '@ 
 $globalHelloIDVariables.Add([PSCustomObject]@{name = $tmpName; value = $tmpValue; secret = "False"});
 
 
 #make sure write-information logging is visual
 $InformationPreference = "continue"
-
 # Check for prefilled API Authorization header
 if (-not [string]::IsNullOrEmpty($portalApiBasic)) {
     $script:headers = @{"authorization" = $portalApiBasic}
@@ -67,7 +40,6 @@ if (-not [string]::IsNullOrEmpty($portalApiBasic)) {
     $script:headers = @{"authorization" = $Key}
     Write-Information "Using manual API credentials"
 }
-
 # Check for prefilled PortalBaseURL
 if (-not [string]::IsNullOrEmpty($portalBaseUrl)) {
     $script:PortalBaseUrl = $portalBaseUrl
@@ -76,10 +48,8 @@ if (-not [string]::IsNullOrEmpty($portalBaseUrl)) {
     $script:PortalBaseUrl = $portalUrl
     Write-Information "Using manual PortalURL: $script:PortalBaseUrl"
 }
-
 # Define specific endpoint URI
 $script:PortalBaseUrl = $script:PortalBaseUrl.trim("/") + "/"  
-
 # Make sure to reveive an empty array using PowerShell Core
 function ConvertFrom-Json-WithEmptyArray([string]$jsonString) {
     # Running in PowerShell Core?
@@ -91,16 +61,13 @@ function ConvertFrom-Json-WithEmptyArray([string]$jsonString) {
         return ,$r  # Force return value to be an array using a comma
     }
 }
-
 function Invoke-HelloIDGlobalVariable {
     param(
         [parameter(Mandatory)][String]$Name,
         [parameter(Mandatory)][String][AllowEmptyString()]$Value,
         [parameter(Mandatory)][String]$Secret
     )
-
     $Name = $Name + $(if ($script:duplicateForm -eq $true) { $script:duplicateFormSuffix })
-
     try {
         $uri = ($script:PortalBaseUrl + "api/v1/automation/variables/named/$Name")
         $response = Invoke-RestMethod -Method Get -Uri $uri -Headers $script:headers -ContentType "application/json" -Verbose:$false
@@ -118,7 +85,6 @@ function Invoke-HelloIDGlobalVariable {
             $uri = ($script:PortalBaseUrl + "api/v1/automation/variable")
             $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $script:headers -ContentType "application/json" -Verbose:$false -Body $body
             $variableGuid = $response.automationVariableGuid
-
             Write-Information "Variable '$Name' created$(if ($script:debugLogging -eq $true) { ": " + $variableGuid })"
         } else {
             $variableGuid = $response.automationVariableGuid
@@ -128,7 +94,6 @@ function Invoke-HelloIDGlobalVariable {
         Write-Error "Variable '$Name', message: $_"
     }
 }
-
 function Invoke-HelloIDAutomationTask {
     param(
         [parameter(Mandatory)][String]$TaskName,
@@ -142,7 +107,6 @@ function Invoke-HelloIDAutomationTask {
     )
     
     $TaskName = $TaskName + $(if ($script:duplicateForm -eq $true) { $script:duplicateFormSuffix })
-
     try {
         $uri = ($script:PortalBaseUrl +"api/v1/automationtasks?search=$TaskName&container=$AutomationContainer")
         $responseRaw = (Invoke-RestMethod -Method Get -Uri $uri -Headers $script:headers -ContentType "application/json" -Verbose:$false) 
@@ -150,7 +114,6 @@ function Invoke-HelloIDAutomationTask {
     
         if([string]::IsNullOrEmpty($response.automationTaskGuid) -or $ForceCreateTask -eq $true) {
             #Create Task
-
             $body = @{
                 name                = $TaskName;
                 useTemplate         = $UseTemplate;
@@ -164,7 +127,6 @@ function Invoke-HelloIDAutomationTask {
             $uri = ($script:PortalBaseUrl +"api/v1/automationtasks/powershell")
             $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $script:headers -ContentType "application/json" -Verbose:$false -Body $body
             $taskGuid = $response.automationTaskGuid
-
             Write-Information "Powershell task '$TaskName' created$(if ($script:debugLogging -eq $true) { ": " + $taskGuid })"
         } else {
             #Get TaskGUID
@@ -174,10 +136,8 @@ function Invoke-HelloIDAutomationTask {
     } catch {
         Write-Error "Powershell task '$TaskName', message: $_"
     }
-
     $returnObject.Value = $taskGuid
 }
-
 function Invoke-HelloIDDatasource {
     param(
         [parameter(Mandatory)][String]$DatasourceName,
@@ -189,9 +149,7 @@ function Invoke-HelloIDDatasource {
         [parameter()][String][AllowEmptyString()]$AutomationTaskGuid,
         [parameter(Mandatory)][Ref]$returnObject
     )
-
     $DatasourceName = $DatasourceName + $(if ($script:duplicateForm -eq $true) { $script:duplicateFormSuffix })
-
     $datasourceTypeName = switch($DatasourceType) { 
         "1" { "Native data source"; break} 
         "2" { "Static data source"; break} 
@@ -229,10 +187,8 @@ function Invoke-HelloIDDatasource {
     } catch {
       Write-Error "$datasourceTypeName '$DatasourceName', message: $_"
     }
-
     $returnObject.Value = $datasourceGuid
 }
-
 function Invoke-HelloIDDynamicForm {
     param(
         [parameter(Mandatory)][String]$FormName,
@@ -241,7 +197,6 @@ function Invoke-HelloIDDynamicForm {
     )
     
     $FormName = $FormName + $(if ($script:duplicateForm -eq $true) { $script:duplicateFormSuffix })
-
     try {
         try {
             $uri = ($script:PortalBaseUrl +"api/v1/forms/$FormName")
@@ -270,11 +225,8 @@ function Invoke-HelloIDDynamicForm {
     } catch {
         Write-Error "Dynamic form '$FormName', message: $_"
     }
-
     $returnObject.Value = $formGuid
 }
-
-
 function Invoke-HelloIDDelegatedForm {
     param(
         [parameter(Mandatory)][String]$DelegatedFormName,
@@ -283,11 +235,11 @@ function Invoke-HelloIDDelegatedForm {
         [parameter()][String][AllowEmptyString()]$Categories,
         [parameter(Mandatory)][String]$UseFaIcon,
         [parameter()][String][AllowEmptyString()]$FaIcon,
+        [parameter()][String][AllowEmptyString()]$task,
         [parameter(Mandatory)][Ref]$returnObject
     )
     $delegatedFormCreated = $false
     $DelegatedFormName = $DelegatedFormName + $(if ($script:duplicateForm -eq $true) { $script:duplicateFormSuffix })
-
     try {
         try {
             $uri = ($script:PortalBaseUrl +"api/v1/delegatedforms/$DelegatedFormName")
@@ -305,6 +257,7 @@ function Invoke-HelloIDDelegatedForm {
                 accessGroups    = (ConvertFrom-Json-WithEmptyArray($AccessGroups));
                 useFaIcon       = $UseFaIcon;
                 faIcon          = $FaIcon;
+                task            = ConvertFrom-Json -inputObject $task;
             }    
             $body = ConvertTo-Json -InputObject $body
     
@@ -314,7 +267,6 @@ function Invoke-HelloIDDelegatedForm {
             $delegatedFormGuid = $response.delegatedFormGUID
             Write-Information "Delegated form '$DelegatedFormName' created$(if ($script:debugLogging -eq $true) { ": " + $delegatedFormGuid })"
             $delegatedFormCreated = $true
-
             $bodyCategories = $Categories
             $uri = ($script:PortalBaseUrl +"api/v1/delegatedforms/$delegatedFormGuid/categories")
             $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $script:headers -ContentType "application/json" -Verbose:$false -Body $bodyCategories
@@ -327,10 +279,10 @@ function Invoke-HelloIDDelegatedForm {
     } catch {
         Write-Error "Delegated form '$DelegatedFormName', message: $_"
     }
-
     $returnObject.value.guid = $delegatedFormGuid
     $returnObject.value.created = $delegatedFormCreated
 }
+
 <# Begin: HelloID Global Variables #>
 foreach ($item in $globalHelloIDVariables) {
 	Invoke-HelloIDGlobalVariable -Name $item.name -Value $item.value -Secret $item.secret 
@@ -339,236 +291,126 @@ foreach ($item in $globalHelloIDVariables) {
 
 
 <# Begin: HelloID Data sources #>
-<# Begin: DataSource "Azure-AD-User-(De)Activate)-generate-table-attributes-basic" #>
+<# Begin: DataSource "AD-user-get-attribute-enabled-deactivate" #>
 $tmpPsScript = @'
-# Set TLS to accept TLS, TLS 1.1 and TLS 1.2
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls12
+$UserPrincipalName = $datasource.selectedUser.UserPrincipalName
+Write-information "Searching AD user [$userPrincipalName]"
 
 try {
-    $userPrincipalName = $datasource.selectedUser.UserPrincipalName
-
-    Write-Information "Generating Microsoft Graph API Access Token.."
-
-    $baseUri = "https://login.microsoftonline.com/"
-    $authUri = $baseUri + "$AADTenantID/oauth2/token"
-
-    $body = @{
-        grant_type      = "client_credentials"
-        client_id       = "$AADAppId"
-        client_secret   = "$AADAppSecret"
-        resource        = "https://graph.microsoft.com"
-    }
- 
-    $Response = Invoke-RestMethod -Method POST -Uri $authUri -Body $body -ContentType 'application/x-www-form-urlencoded'
-    $accessToken = $Response.access_token;
-         
-    Write-Information "Searching for AzureAD user userPrincipalName=$userPrincipalName"
-
-    #Add the authorization header to the request
-    $authorization = @{
-        Authorization = "Bearer $accesstoken";
-        'Content-Type' = "application/json";
-        Accept = "application/json";
-    }
- 
-    $properties = @("displayName","userPrincipalName","accountEnabled","givenName","surname","department","jobTitle","companyName","mobilePhone")
- 
-    $baseSearchUri = "https://graph.microsoft.com/"
-    $searchUri = $baseSearchUri + "v1.0/users/$userPrincipalName" + '?$select=' + ($properties -join ",")
-    $azureADUser = Invoke-RestMethod -Uri $searchUri -Method Get -Headers $authorization -Verbose:$false
-    Write-Information "Finished searching AzureAD user [$userPrincipalName]"
-      
-    foreach($tmp in $azureADUser.psObject.properties)
-    {
-        if($tmp.Name -in $properties){
-            $returnObject = [Ordered]@{
-                name=$tmp.Name;
-                value=$tmp.value
-            }
-            Write-Output $returnObject
-        }
-    }
-   
-    Write-Information "Finished retrieving AzureAD user [$userPrincipalName] basic attributes"
+    $adUser = Get-ADuser -Filter { UserPrincipalName -eq $userPrincipalName } -Properties enabled | select enabled
+    Write-information "Found AD user [$userPrincipalName]"
+    
+    $enabled = $adUser.enabled    
+    Write-information "Account enabled: $enabled"    
+    Write-output @{ enabled = $enabled }
 } catch {
-    $errorDetailsMessage = ($_.ErrorDetails.Message | ConvertFrom-Json).error.message
-    Write-Error ("Error searching for AzureAD groups. Error: $_" + $errorDetailsMessage)
-}
-'@ 
-$tmpModel = @'
-[{"key":"value","type":0},{"key":"name","type":0}]
-'@ 
-$tmpInput = @'
-[{"description":"","translateDescription":false,"inputFieldType":1,"key":"selectedUser","type":0,"options":1}]
-'@ 
-$dataSourceGuid_1 = [PSCustomObject]@{} 
-$dataSourceGuid_1_Name = @'
-Azure-AD-User-(De)Activate)-generate-table-attributes-basic
-'@ 
-Invoke-HelloIDDatasource -DatasourceName $dataSourceGuid_1_Name -DatasourceType "4" -DatasourceInput $tmpInput -DatasourcePsScript $tmpPsScript -DatasourceModel $tmpModel -returnObject ([Ref]$dataSourceGuid_1) 
-<# End: DataSource "Azure-AD-User-(De)Activate)-generate-table-attributes-basic" #>
-
-<# Begin: DataSource "Azure-AD-user-(De)Activate-get-attribute-enabled" #>
-$tmpPsScript = @'
-# Set TLS to accept TLS, TLS 1.1 and TLS 1.2
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls12
-
-try {
-    $userPrincipalName = $datasource.selectedUser.UserPrincipalName
-
-    Write-Information "Generating Microsoft Graph API Access Token.."
-
-    $baseUri = "https://login.microsoftonline.com/"
-    $authUri = $baseUri + "$AADTenantID/oauth2/token"
-
-    $body = @{
-        grant_type      = "client_credentials"
-        client_id       = "$AADAppId"
-        client_secret   = "$AADAppSecret"
-        resource        = "https://graph.microsoft.com"
-    }
- 
-    $Response = Invoke-RestMethod -Method POST -Uri $authUri -Body $body -ContentType 'application/x-www-form-urlencoded'
-    $accessToken = $Response.access_token;
-         
-    Write-Information "Searching for AzureAD user userPrincipalName=$userPrincipalName"
-
-    #Add the authorization header to the request
-    $authorization = @{
-        Authorization = "Bearer $accesstoken";
-        'Content-Type' = "application/json";
-        Accept = "application/json";
-    }
- 
-    $properties = @("accountEnabled")
- 
-    $baseSearchUri = "https://graph.microsoft.com/"
-    $searchUri = $baseSearchUri + "v1.0/users/$userPrincipalName" + '?$select=' + ($properties -join ",")
-    $azureADUser = Invoke-RestMethod -Uri $searchUri -Method Get -Headers $authorization -Verbose:$false
-    Write-Information "Finished searching AzureAD user [$userPrincipalName]"
-
-    $enabled = $azureADUser.accountEnabled
-     
-    Write-Information "Account enabled: $enabled"
-     
-    $returnObject = [Ordered]@{
-        enabled = $enabled
-    }
-
-    Write-Output $returnObject
-} catch {
-    $errorDetailsMessage = ($_.ErrorDetails.Message | ConvertFrom-Json).error.message
-    Write-Error ("Error searching for AzureAD groups. Error: $_" + $errorDetailsMessage)
+    Write-error "Error retrieving AD user [$userPrincipalName] account status. Error: $($_.Exception.Message)"
+    return
 }
 '@ 
 $tmpModel = @'
 [{"key":"enabled","type":0}]
 '@ 
 $tmpInput = @'
-[{"description":"","translateDescription":false,"inputFieldType":1,"key":"selectedUser","type":0,"options":1}]
+[{"description":null,"translateDescription":false,"inputFieldType":1,"key":"selectedUser","type":0,"options":1}]
 '@ 
 $dataSourceGuid_2 = [PSCustomObject]@{} 
 $dataSourceGuid_2_Name = @'
-Azure-AD-user-(De)Activate-get-attribute-enabled
+AD-user-get-attribute-enabled-deactivate
 '@ 
 Invoke-HelloIDDatasource -DatasourceName $dataSourceGuid_2_Name -DatasourceType "4" -DatasourceInput $tmpInput -DatasourcePsScript $tmpPsScript -DatasourceModel $tmpModel -returnObject ([Ref]$dataSourceGuid_2) 
-<# End: DataSource "Azure-AD-user-(De)Activate-get-attribute-enabled" #>
+<# End: DataSource "AD-user-get-attribute-enabled-deactivate" #>
 
-<# Begin: DataSource "Azure-AD-User-(De)Activate-generate-table-wildcard" #>
+<# Begin: DataSource "AD-user-generate-table-wildcard-deactivate" #>
 $tmpPsScript = @'
-# Set TLS to accept TLS, TLS 1.1 and TLS 1.2
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls12
-
 try {
-    $searchValue = $datasource.searchUser
+    $searchValue = $dataSource.searchUser
     $searchQuery = "*$searchValue*"
-      
+    $searchOUs = $ADusersSearchOU
+     
+     
     if([String]::IsNullOrEmpty($searchValue) -eq $true){
-        Hid-Add-TaskResult -ResultValue []
+        return
     }else{
-        Write-Information "Searching for: $searchQuery"
-          
-        Write-Information "Generating Microsoft Graph API Access Token.."
-        $baseUri = "https://login.microsoftonline.com/"
-        $authUri = $baseUri + "$AADTenantID/oauth2/token"
-        $body = @{
-            grant_type      = "client_credentials"
-            client_id       = "$AADAppId"
-            client_secret   = "$AADAppSecret"
-            resource        = "https://graph.microsoft.com"
+        Write-Information "SearchQuery: $searchQuery"
+        Write-Information "SearchBase: $searchOUs"
+         
+        $ous = $searchOUs | ConvertFrom-Json
+        $users = foreach($item in $ous) {
+            Get-ADUser -Filter {Name -like $searchQuery -or DisplayName -like $searchQuery -or userPrincipalName -like $searchQuery -or mail -like $searchQuery} -SearchBase $item.ou -properties SamAccountName, displayName, UserPrincipalName, Description, company, Department, Title
         }
- 
-        $Response = Invoke-RestMethod -Method POST -Uri $authUri -Body $body -ContentType 'application/x-www-form-urlencoded'
-        $accessToken = $Response.access_token;
-        Write-Information "Searching for: $searchQuery"
-        
-        #Add the authorization header to the request
-        $authorization = @{
-            Authorization = "Bearer $accesstoken";
-            'Content-Type' = "application/json";
-            Accept = "application/json";
-        }
- 
-        $baseSearchUri = "https://graph.microsoft.com/"
-        $searchUri = $baseSearchUri + "v1.0/users" + '?$select=UserPrincipalName,displayName,department,jobTitle,companyName' + '&$top=999'
- 
-        $azureADUsersResponse = Invoke-RestMethod -Uri $searchUri -Method Get -Headers $authorization -Verbose:$false
-        $azureADUsers = $azureADUsersResponse.value
-        while (![string]::IsNullOrEmpty($azureADUsersResponse.'@odata.nextLink')) {
-            $azureADUsersResponse = Invoke-RestMethod -Uri $azureADUsersResponse.'@odata.nextLink' -Method Get -Headers $authorization -Verbose:$false
-            $azureADUsers += $azureADUsersResponse.value
-        }  
-
-        $users = foreach($azureADUser in $azureADUsers){
-            if($azureADUser.displayName -like $searchQuery -or $azureADUser.userPrincipalName -like $searchQuery){
-                $azureADUser
-            }
-        }
+         
         $users = $users | Sort-Object -Property DisplayName
         $resultCount = @($users).Count
         Write-Information "Result count: $resultCount"
-          
+         
         if($resultCount -gt 0){
             foreach($user in $users){
-                $returnObject = @{
-                    UserPrincipalName=$user.UserPrincipalName;
-                    displayName=$user.displayName;
-                    department=$user.department;
-                    Title=$user.jobTitle;
-                    Company=$user.companyName
-                }
+                $returnObject = @{SamAccountName=$user.SamAccountName; displayName=$user.displayName; UserPrincipalName=$user.UserPrincipalName; Description=$user.Description; Company=$user.company; Department=$user.Department; Title=$user.Title;}
                 Write-Output $returnObject
             }
         }
     }
 } catch {
-    $errorDetailsMessage = ($_.ErrorDetails.Message | ConvertFrom-Json).error.message
-    Write-Error ("Error searching for AzureAD users. Error: $_" + $errorDetailsMessage)
+    $msg = "Error searching AD user [$searchValue]. Error: $($_.Exception.Message)"
+    Write-Error $msg
 }
-  
 '@ 
 $tmpModel = @'
-[{"key":"UserPrincipalName","type":0},{"key":"department","type":0},{"key":"displayName","type":0},{"key":"Company","type":0},{"key":"Title","type":0}]
+[{"key":"Description","type":0},{"key":"SamAccountName","type":0},{"key":"Title","type":0},{"key":"Company","type":0},{"key":"Department","type":0},{"key":"displayName","type":0},{"key":"UserPrincipalName","type":0}]
 '@ 
 $tmpInput = @'
-[{"description":"","translateDescription":false,"inputFieldType":1,"key":"searchUser","type":0,"options":1}]
+[{"description":null,"translateDescription":false,"inputFieldType":1,"key":"searchUser","type":0,"options":1}]
 '@ 
 $dataSourceGuid_0 = [PSCustomObject]@{} 
 $dataSourceGuid_0_Name = @'
-Azure-AD-User-(De)Activate-generate-table-wildcard
+AD-user-generate-table-wildcard-deactivate
 '@ 
 Invoke-HelloIDDatasource -DatasourceName $dataSourceGuid_0_Name -DatasourceType "4" -DatasourceInput $tmpInput -DatasourcePsScript $tmpPsScript -DatasourceModel $tmpModel -returnObject ([Ref]$dataSourceGuid_0) 
-<# End: DataSource "Azure-AD-User-(De)Activate-generate-table-wildcard" #>
+<# End: DataSource "AD-user-generate-table-wildcard-deactivate" #>
+
+<# Begin: DataSource "AD-user-generate-table-attributes-basic-deactivate" #>
+$tmpPsScript = @'
+try {
+    $userPrincipalName = $dataSource.selectedUser.UserPrincipalName
+    Write-Information "Searching AD user [$userPrincipalName]"
+     
+    $adUser = Get-ADuser -Filter { UserPrincipalName -eq $userPrincipalName } -Properties displayname, samaccountname, userPrincipalName, mail, employeeID, Enabled | Select-Object displayname, samaccountname, userPrincipalName, mail, employeeID, Enabled
+    Write-Information -Message "Finished searching AD user [$userPrincipalName]"
+     
+    foreach($tmp in $adUser.psObject.properties)
+    {
+        $returnObject = @{name=$tmp.Name; value=$tmp.value}
+        Write-Output $returnObject
+    }
+     
+    Write-Information "Finished retrieving AD user [$userPrincipalName] basic attributes"
+} catch {
+    Write-Error "Error retrieving AD user [$userPrincipalName] basic attributes. Error: $($_.Exception.Message)"
+}
+'@ 
+$tmpModel = @'
+[{"key":"value","type":0},{"key":"name","type":0}]
+'@ 
+$tmpInput = @'
+[{"description":null,"translateDescription":false,"inputFieldType":1,"key":"selectedUser","type":0,"options":1}]
+'@ 
+$dataSourceGuid_1 = [PSCustomObject]@{} 
+$dataSourceGuid_1_Name = @'
+AD-user-generate-table-attributes-basic-deactivate
+'@ 
+Invoke-HelloIDDatasource -DatasourceName $dataSourceGuid_1_Name -DatasourceType "4" -DatasourceInput $tmpInput -DatasourcePsScript $tmpPsScript -DatasourceModel $tmpModel -returnObject ([Ref]$dataSourceGuid_1) 
+<# End: DataSource "AD-user-generate-table-attributes-basic-deactivate" #>
 <# End: HelloID Data sources #>
 
-<# Begin: Dynamic Form "AzureAD Account - (De)Activate" #>
+<# Begin: Dynamic Form "AD Account - (De)Activate" #>
 $tmpSchema = @"
-[{"label":"Select user account","fields":[{"key":"searchfield","templateOptions":{"label":"Search","placeholder":"Username or email address"},"type":"input","summaryVisibility":"Hide element","requiresTemplateOptions":true,"requiresKey":true,"requiresDataSource":false},{"key":"gridUsers","templateOptions":{"label":"Select user","required":true,"grid":{"columns":[{"headerName":"User Principal Name","field":"UserPrincipalName"},{"headerName":"Department","field":"department"},{"headerName":"Display Name","field":"displayName"},{"headerName":"Company","field":"Company"},{"headerName":"Title","field":"Title"}],"height":300,"rowSelection":"single"},"dataSourceConfig":{"dataSourceGuid":"$dataSourceGuid_0","input":{"propertyInputs":[{"propertyName":"searchUser","otherFieldValue":{"otherFieldKey":"searchfield"}}]}},"useFilter":false},"type":"grid","summaryVisibility":"Show","requiresTemplateOptions":true,"requiresKey":true,"requiresDataSource":true}]},{"label":"(De)Activate","fields":[{"key":"gridDetails","templateOptions":{"label":"Basic attributes","required":false,"grid":{"columns":[{"headerName":"Name","field":"name"},{"headerName":"Value","field":"value"}],"height":350,"rowSelection":"single"},"dataSourceConfig":{"dataSourceGuid":"$dataSourceGuid_1","input":{"propertyInputs":[{"propertyName":"selectedUser","otherFieldValue":{"otherFieldKey":"gridUsers"}}]}},"useFilter":false},"type":"grid","summaryVisibility":"Hide element","requiresTemplateOptions":true,"requiresKey":true,"requiresDataSource":true},{"key":"enabled","templateOptions":{"label":"AD account status","useSwitch":true,"checkboxLabel":"active","useDataSource":true,"displayField":"enabled","dataSourceConfig":{"dataSourceGuid":"$dataSourceGuid_2","input":{"propertyInputs":[{"propertyName":"selectedUser","otherFieldValue":{"otherFieldKey":"gridUsers"}}]}},"useFilter":false},"type":"boolean","summaryVisibility":"Show","requiresTemplateOptions":true,"requiresKey":true,"requiresDataSource":false}]}]
+[{"label":"Select user account","fields":[{"key":"searchfield","templateOptions":{"label":"Search","placeholder":"Username or email address"},"type":"input","summaryVisibility":"Hide element","requiresTemplateOptions":true},{"key":"gridUsers","templateOptions":{"label":"Select user","required":true,"grid":{"columns":[{"headerName":"DisplayName","field":"displayName"},{"headerName":"UserPrincipalName","field":"UserPrincipalName"},{"headerName":"Department","field":"Department"},{"headerName":"Title","field":"Title"},{"headerName":"Description","field":"Description"}],"height":300,"rowSelection":"single"},"dataSourceConfig":{"dataSourceGuid":"$dataSourceGuid_0","input":{"propertyInputs":[{"propertyName":"searchUser","otherFieldValue":{"otherFieldKey":"searchfield"}}]}},"useFilter":false},"type":"grid","summaryVisibility":"Show","requiresTemplateOptions":true}]},{"label":"(De)activate","fields":[{"key":"gridDetails","templateOptions":{"label":"Basic attributes","required":false,"grid":{"columns":[{"headerName":"Name","field":"name"},{"headerName":"Value","field":"value"}],"height":350,"rowSelection":"single"},"dataSourceConfig":{"dataSourceGuid":"$dataSourceGuid_1","input":{"propertyInputs":[{"propertyName":"selectedUser","otherFieldValue":{"otherFieldKey":"gridUsers"}}]}},"useFilter":false},"type":"grid","summaryVisibility":"Hide element","requiresTemplateOptions":true},{"key":"enabled","templateOptions":{"label":"AD account status","useSwitch":true,"checkboxLabel":"active","useDataSource":true,"displayField":"enabled","dataSourceConfig":{"dataSourceGuid":"$dataSourceGuid_2","input":{"propertyInputs":[{"propertyName":"selectedUser","otherFieldValue":{"otherFieldKey":"gridUsers"}}]}},"useFilter":false},"type":"boolean","summaryVisibility":"Show","requiresTemplateOptions":true}]}]
 "@ 
 
 $dynamicFormGuid = [PSCustomObject]@{} 
 $dynamicFormName = @'
-AzureAD Account - (De)Activate
+AD Account - (De)Activate
 '@ 
 Invoke-HelloIDDynamicForm -FormName $dynamicFormName -FormSchema $tmpSchema  -returnObject ([Ref]$dynamicFormGuid) 
 <# END: Dynamic Form #>
@@ -588,7 +430,6 @@ foreach($group in $delegatedFormAccessGroupNames) {
     }
 }
 $delegatedFormAccessGroupGuids = ($delegatedFormAccessGroupGuids | Select-Object -Unique | ConvertTo-Json -Compress)
-
 $delegatedFormCategoryGuids = @()
 foreach($category in $delegatedFormCategories) {
     try {
@@ -604,12 +445,10 @@ foreach($category in $delegatedFormCategories) {
             name = @{"en" = $category};
         }
         $body = ConvertTo-Json -InputObject $body
-
         $uri = ($script:PortalBaseUrl +"api/v1/delegatedformcategories")
         $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $script:headers -ContentType "application/json" -Verbose:$false -Body $body
         $tmpGuid = $response.delegatedFormCategoryGuid
         $delegatedFormCategoryGuids += $tmpGuid
-
         Write-Information "HelloID Delegated Form category '$category' successfully created$(if ($script:debugLogging -eq $true) { ": " + $tmpGuid })"
     }
 }
@@ -619,95 +458,12 @@ $delegatedFormCategoryGuids = (ConvertTo-Json -InputObject $delegatedFormCategor
 <# Begin: Delegated Form #>
 $delegatedFormRef = [PSCustomObject]@{guid = $null; created = $null} 
 $delegatedFormName = @'
-AzureAD Account - (De)Activate
+AD Account - (De)Activate
 '@
-Invoke-HelloIDDelegatedForm -DelegatedFormName $delegatedFormName -DynamicFormGuid $dynamicFormGuid -AccessGroups $delegatedFormAccessGroupGuids -Categories $delegatedFormCategoryGuids -UseFaIcon "True" -FaIcon "fa fa-unlock" -returnObject ([Ref]$delegatedFormRef) 
-<# End: Delegated Form #>
-
-<# Begin: Delegated Form Task #>
-if($delegatedFormRef.created -eq $true) { 
-	$tmpScript = @'
-# Set TLS to accept TLS, TLS 1.1 and TLS 1.2
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls12
-
-try{
-    Hid-Write-Status -Message "Generating Microsoft Graph API Access Token.." -Event Information
-
-    $baseUri = "https://login.microsoftonline.com/"
-    $authUri = $baseUri + "$AADTenantID/oauth2/token"
-
-    $body = @{
-        grant_type      = "client_credentials"
-        client_id       = "$AADAppId"
-        client_secret   = "$AADAppSecret"
-        resource        = "https://graph.microsoft.com"
-    }
- 
-    $Response = Invoke-RestMethod -Method POST -Uri $authUri -Body $body -ContentType 'application/x-www-form-urlencoded'
-    $accessToken = $Response.access_token;
-
-
-    if($blnenabled -eq 'true'){
-        #Change mapping here
-        $account = [PSCustomObject]@{
-            userPrincipalName = $userPrincipalName;
-            accountEnabled = $true;
-            showInAddressList = $true;
-        }
-        Hid-Write-Status -Message "Enabling AzureAD user [$($account.userPrincipalName)].." -Event Information
-    }else{
-        #Change mapping here
-        $account = [PSCustomObject]@{
-            userPrincipalName = $userPrincipalName;
-            accountEnabled = $false;
-            showInAddressList = $false;
-        }
-        Hid-Write-Status -Message "Disabling AzureAD user [$($account.userPrincipalName)].." -Event Information
-    }
-
- 
-    #Add the authorization header to the request
-    $authorization = @{
-        Authorization = "Bearer $accesstoken";
-        'Content-Type' = "application/json";
-        Accept = "application/json";
-    }
-
- 
-    $baseUpdateUri = "https://graph.microsoft.com/"
-    $updateUri = $baseUpdateUri + "v1.0/users/$($account.userPrincipalName)"
-    $body = $account | ConvertTo-Json -Depth 10
- 
-    $response = Invoke-RestMethod -Uri $updateUri -Method PATCH -Headers $authorization -Body $body -Verbose:$false
-
-    if($blnenabled -eq 'true'){
-        Hid-Write-Status -Message "AzureAD user [$($account.userPrincipalName)] enabled successfully" -Event Success
-        HID-Write-Summary -Message "AzureAD user [$($account.userPrincipalName)] enabled successfully" -Event Success
-    }elseif($blnenabled -eq 'false'){
-        Hid-Write-Status -Message "AzureAD user [$($account.userPrincipalName)] disabled successfully" -Event Success
-        HID-Write-Summary -Message "AzureAD user [$($account.userPrincipalName)] disabled successfully" -Event Success
-    }
-}catch{
-    if($blnenabled -eq 'true'){
-        HID-Write-Status -Message "Error enabling AzureAD user [$($account.userPrincipalName)]. Error: $_" -Event Error
-        HID-Write-Summary -Message "Error enabling AzureAD user [$($account.userPrincipalName)]" -Event Failed
-    }else{
-        HID-Write-Status -Message "Error disabling AzureAD user [$($account.userPrincipalName)]. Error: $_" -Event Error
-        HID-Write-Summary -Message "Error disabling AzureAD user [$($account.userPrincipalName)]" -Event Failed
-    }
-}
-'@; 
-
-	$tmpVariables = @'
-[{"name":"blnenabled","value":"{{form.enabled}}","secret":false,"typeConstraint":"string"},{"name":"userPrincipalName","value":"{{form.gridUsers.UserPrincipalName}}","secret":false,"typeConstraint":"string"}]
+$tmpTask = @'
+{"name":"AD Account - (De)Activate","script":"$VerbosePreference = \"SilentlyContinue\"\r\n$InformationPreference = \"Continue\"\r\n$WarningPreference = \"Continue\"\r\n\r\n# variables configured in form\r\n$userPrincipalName = $form.gridUsers.UserPrincipalName\r\n$blnenabled = $form.enabled\r\n\r\ntry {\r\n    $adUser = Get-ADuser -Filter { UserPrincipalName -eq $userPrincipalName }\r\n    Write-Information \"Found AD user [$userPrincipalName]\"\r\n} catch {\r\n    Write-Error \"Could not find AD user [$userPrincipalName]. Error: $($_.Exception.Message)\"\r\n}\r\n\r\nif($blnenabled -eq 'true'){\r\n    try {\r\n    \t$enableUser = Enable-ADAccount -Identity $adUser\r\n    \t\r\n        Write-Information \"Successfully enabled AD user [$userPrincipalName]\"\r\n    } catch {\r\n        Write-Error \"Could not enable AD user [$userPrincipalName]. Error: $($_.Exception.Message)\"\r\n    }\r\n}\r\n    \r\nif($blnenabled -eq 'false'){\r\n    try {\r\n    \t$disableUser = Disable-ADAccount -Identity $adUser\r\n    \t\r\n        Write-Information \"Successfully disabled AD user [$userPrincipalName]\"\r\n    } catch {\r\n        Write-Error \"Could not disable AD user [$userPrincipalName]. Error: $($_.Exception.Message)\"\r\n    }\r\n}\r\n","runInCloud":false}
 '@ 
 
-	$delegatedFormTaskGuid = [PSCustomObject]@{} 
-$delegatedFormTaskName = @'
-azure-ad-account-(de)activate
-'@
-	Invoke-HelloIDAutomationTask -TaskName $delegatedFormTaskName -UseTemplate "False" -AutomationContainer "8" -Variables $tmpVariables -PowershellScript $tmpScript -ObjectGuid $delegatedFormRef.guid -ForceCreateTask $true -returnObject ([Ref]$delegatedFormTaskGuid) 
-} else {
-	Write-Warning "Delegated form '$delegatedFormName' already exists. Nothing to do with the Delegated Form task..." 
-}
-<# End: Delegated Form Task #>
+Invoke-HelloIDDelegatedForm -DelegatedFormName $delegatedFormName -DynamicFormGuid $dynamicFormGuid -AccessGroups $delegatedFormAccessGroupGuids -Categories $delegatedFormCategoryGuids -UseFaIcon "True" -FaIcon "fa fa-unlock" -task $tmpTask -returnObject ([Ref]$delegatedFormRef) 
+<# End: Delegated Form #>
+
