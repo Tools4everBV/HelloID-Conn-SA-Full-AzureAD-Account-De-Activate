@@ -10,7 +10,9 @@
         },
         "type": "input",
         "summaryVisibility": "Hide element",
-        "requiresTemplateOptions": true
+        "requiresTemplateOptions": true,
+        "requiresKey": true,
+        "requiresDataSource": false
       },
       {
         "key": "gridUsers",
@@ -20,24 +22,24 @@
           "grid": {
             "columns": [
               {
-                "headerName": "DisplayName",
-                "field": "displayName"
-              },
-              {
-                "headerName": "UserPrincipalName",
+                "headerName": "User Principal Name",
                 "field": "UserPrincipalName"
               },
               {
                 "headerName": "Department",
-                "field": "Department"
+                "field": "department"
+              },
+              {
+                "headerName": "Display Name",
+                "field": "displayName"
+              },
+              {
+                "headerName": "Company",
+                "field": "Company"
               },
               {
                 "headerName": "Title",
                 "field": "Title"
-              },
-              {
-                "headerName": "Description",
-                "field": "Description"
               }
             ],
             "height": 300,
@@ -60,12 +62,14 @@
         },
         "type": "grid",
         "summaryVisibility": "Show",
-        "requiresTemplateOptions": true
+        "requiresTemplateOptions": true,
+        "requiresKey": true,
+        "requiresDataSource": true
       }
     ]
   },
   {
-    "label": "(De)activate",
+    "label": "(De)Activate",
     "fields": [
       {
         "key": "gridDetails",
@@ -103,7 +107,9 @@
         },
         "type": "grid",
         "summaryVisibility": "Hide element",
-        "requiresTemplateOptions": true
+        "requiresTemplateOptions": true,
+        "requiresKey": true,
+        "requiresDataSource": true
       },
       {
         "key": "enabled",
@@ -130,7 +136,9 @@
         },
         "type": "boolean",
         "summaryVisibility": "Show",
-        "requiresTemplateOptions": true
+        "requiresTemplateOptions": true,
+        "requiresKey": true,
+        "requiresDataSource": false
       }
     ]
   }
