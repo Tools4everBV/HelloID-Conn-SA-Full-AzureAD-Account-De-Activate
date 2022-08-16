@@ -8,6 +8,7 @@ This HelloID Service Automation Delegated Form can enable or disable Azure users
 ## Versioning
 | Version | Description | Date |
 | - | - | - |
+| 1.1.1   | Updated auditlogging | 2022/08/16  |
 | 1.1.0   | Updated with code for SA agent | 2022/03/14  |
 | 1.0.1   | Added version number and updated all-in-one script | 2021/11/04  |
 | 1.0.0   | Initial release | 2021/09/02  |
@@ -111,7 +112,7 @@ This Delegated Form uses the following resources in order to run
 
 ### Powershell data source 'Azure-AD-User-(De)Activate)-generate-table-attributes-basic'
 
-### Delegated form task 'azure-ad-account-(de)activate'
+### Delegated form task 'AzureAD Account - (De)Activate'
 
 ## Getting help
 _If you need help, feel free to ask questions on our [forum](https://forum.helloid.com/forum/helloid-connectors/service-automation/203-helloid-sa-azure-ad-de-activate-user)_

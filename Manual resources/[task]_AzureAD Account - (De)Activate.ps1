@@ -56,13 +56,61 @@ try{
 
     if($blnenabled -eq 'true'){
         Write-Information "AzureAD user [$($account.userPrincipalName)] enabled successfully"
+        
+        $Log = @{
+            Action            = "EnableAccount" # optional. ENUM (undefined = default) 
+            System            = "AzureActiveDirectory" # optional (free format text) 
+            Message           = "AzureAD user [$($account.userPrincipalName)] enabled successfully" # required (free format text) 
+            IsError           = $false # optional. Elastic reporting purposes only. (default = $false. $true = Executed action returned an error) 
+            TargetDisplayName = $($account.userPrincipalName) # optional (free format text) 
+            TargetIdentifier  = $([string]$AADTenantID) # optional (free format text) 
+        }
+        #send result back  
+        Write-Information -Tags "Audit" -MessageData $log
+
     }elseif($blnenabled -eq 'false'){
         Write-Information "AzureAD user [$($account.userPrincipalName)] disabled successfully"
+
+        $Log = @{
+            Action            = "DisableAccount" # optional. ENUM (undefined = default) 
+            System            = "AzureActiveDirectory" # optional (free format text) 
+            Message           = "AzureAD user [$($account.userPrincipalName)] enabled successfully" # required (free format text) 
+            IsError           = $false # optional. Elastic reporting purposes only. (default = $false. $true = Executed action returned an error) 
+            TargetDisplayName = $($account.userPrincipalName) # optional (free format text) 
+            TargetIdentifier  = $([string]$AADTenantID) # optional (free format text) 
+        }
+        #send result back  
+        Write-Information -Tags "Audit" -MessageData $log
+
     }
 }catch{
     if($blnenabled -eq 'true'){
         Write-Error "Error enabling AzureAD user [$($account.userPrincipalName)]. Error: $_"
+
+        $Log = @{
+            Action            = "EnableAccount" # optional. ENUM (undefined = default) 
+            System            = "AzureActiveDirectory" # optional (free format text) 
+            Message           = "Failed to enable AzureAD user [$($account.userPrincipalName)]." # required (free format text) 
+            IsError           = $true # optional. Elastic reporting purposes only. (default = $false. $true = Executed action returned an error) 
+            TargetDisplayName = $($account.userPrincipalName) # optional (free format text) 
+            TargetIdentifier  = $([string]$AADTenantID) # optional (free format text) 
+        }
+        #send result back  
+        Write-Information -Tags "Audit" -MessageData $log
+
     }else{
         Write-Error "Error disabling AzureAD user [$($account.userPrincipalName)]. Error: $_"
+
+        $Log = @{
+            Action            = "DisableAccount" # optional. ENUM (undefined = default) 
+            System            = "AzureActiveDirectory" # optional (free format text) 
+            Message           = "Failed to disable AzureAD user [$($account.userPrincipalName)]." # required (free format text) 
+            IsError           = $true # optional. Elastic reporting purposes only. (default = $false. $true = Executed action returned an error) 
+            TargetDisplayName = $($account.userPrincipalName) # optional (free format text) 
+            TargetIdentifier  = $([string]$AADTenantID) # optional (free format text) 
+        }
+        #send result back  
+        Write-Information -Tags "Audit" -MessageData $log
+
     }
 }

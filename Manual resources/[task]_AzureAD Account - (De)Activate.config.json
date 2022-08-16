@@ -1,4 +1,4 @@
 {
-  "name": "AzureAD Account - (De)Activate",
-  "runInCloud": true
+    "name":  "AzureAD Account - (De)Activate",
+    "runInCloud":  true
 }
