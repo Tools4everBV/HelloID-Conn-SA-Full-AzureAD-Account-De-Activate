@@ -8,6 +8,7 @@ This HelloID Service Automation Delegated Form can enable or disable Azure users
 ## Versioning
 | Version | Description | Date |
 | - | - | - |
+| 1.1.2   | Updated to use id instead of upn to get correct user | 2022/10/11  |
 | 1.1.1   | Updated auditlogging | 2022/08/16  |
 | 1.1.0   | Updated with code for SA agent | 2022/03/14  |
 | 1.0.1   | Added version number and updated all-in-one script | 2021/11/04  |
@@ -22,17 +23,25 @@ This script uses the Microsoft Graph API and requires an App Registration with A
  
 <!-- TABLE OF CONTENTS -->
 ## Table of Contents
-* [Description](#description)
-* [Requirements](#requirements)
-* [Introduction](#introduction)
-* [Getting the Azure AD graph API access](#getting-the-azure-ad-graph-api-access)
-  * [Application Registration](#application-registration)
-  * [Configuring App Permissions](#configuring-app-permissions)
-  * [Authentication and Authorization](#authentication-and-authorization)
-* [All-in-one PowerShell setup script](#all-in-one-powershell-setup-script)
-  * [Getting started](#getting-started)
-* [Post-setup configuration](#post-setup-configuration)
-* [Manual resources](#manual-resources)
+- [Description](#description)
+- [Versioning](#versioning)
+- [Requirements](#requirements)
+- [Table of Contents](#table-of-contents)
+- [Introduction](#introduction)
+- [Getting the Azure AD graph API access](#getting-the-azure-ad-graph-api-access)
+  - [Application Registration](#application-registration)
+  - [Configuring App Permissions](#configuring-app-permissions)
+  - [Authentication and Authorization](#authentication-and-authorization)
+- [All-in-one PowerShell setup script](#all-in-one-powershell-setup-script)
+  - [Getting started](#getting-started)
+- [Post-setup configuration](#post-setup-configuration)
+- [Manual resources](#manual-resources)
+  - [Powershell data source 'Azure-AD-User-(De)Activate-generate-table-wildcard'](#powershell-data-source-azure-ad-user-deactivate-generate-table-wildcard)
+  - [Powershell data source 'Azure-AD-user-(De)Activate-get-attribute-enabled'](#powershell-data-source-azure-ad-user-deactivate-get-attribute-enabled)
+  - [Powershell data source 'Azure-AD-User-(De)Activate)-generate-table-attributes-basic'](#powershell-data-source-azure-ad-user-deactivate-generate-table-attributes-basic)
+  - [Delegated form task 'AzureAD Account - (De)Activate'](#delegated-form-task-azuread-account---deactivate)
+- [Getting help](#getting-help)
+- [HelloID Docs](#helloid-docs)
 
 
 ## Introduction

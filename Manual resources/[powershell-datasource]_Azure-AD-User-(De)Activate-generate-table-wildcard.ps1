@@ -1,15 +1,10 @@
 # Set TLS to accept TLS, TLS 1.1 and TLS 1.2
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls12
 
-$verbosePreference = "SilentlyContinue"
-$informationPreference = "Continue"
-
 try {
     $searchValue = $datasource.searchUser
     $searchQuery = "*$searchValue*"
-      
-    Write-Verbose "Searching for: $searchQuery"
-        
+          
     Write-Verbose "Generating Microsoft Graph API Access Token.."
     $baseUri = "https://login.microsoftonline.com/"
     $authUri = $baseUri + "$AADTenantID/oauth2/token"
@@ -22,6 +17,7 @@ try {
 
     $Response = Invoke-RestMethod -Method POST -Uri $authUri -Body $body -ContentType 'application/x-www-form-urlencoded'
     $accessToken = $Response.access_token;
+    Write-Information "Searching for: $searchQuery"
     
     #Add the authorization header to the request
     $authorization = @{
@@ -31,7 +27,7 @@ try {
     }
 
     $baseSearchUri = "https://graph.microsoft.com/"
-    $searchUri = $baseSearchUri + "v1.0/users" + '?$select=UserPrincipalName,displayName,department,jobTitle,companyName' + '&$top=999'
+    $searchUri = $baseSearchUri + "v1.0/users" + '?$select=Id,UserPrincipalName,displayName,department,jobTitle,companyName' + '&$top=999'
 
     $azureADUsersResponse = Invoke-RestMethod -Uri $searchUri -Method Get -Headers $authorization -Verbose:$false
     $azureADUsers = $azureADUsersResponse.value
@@ -52,11 +48,12 @@ try {
     if($resultCount -gt 0){
         foreach($user in $users){
             $returnObject = @{
+                Id=$user.Id;
                 UserPrincipalName=$user.UserPrincipalName;
-                displayName=$user.displayName;
-                department=$user.department;
-                Title=$user.jobTitle;
-                Company=$user.companyName
+                DisplayName=$user.DisplayName;
+                Department=$user.Department;
+                Title=$user.JobTitle;
+                Company=$user.CompanyName
             }
             Write-Output $returnObject
         }

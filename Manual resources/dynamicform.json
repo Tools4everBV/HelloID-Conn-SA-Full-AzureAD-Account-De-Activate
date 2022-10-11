@@ -22,24 +22,24 @@
                                                    "grid":  {
                                                                 "columns":  [
                                                                                 {
+                                                                                    "headerName":  "Display Name",
+                                                                                    "field":  "displayName"
+                                                                                },
+                                                                                {
                                                                                     "headerName":  "User Principal Name",
                                                                                     "field":  "UserPrincipalName"
+                                                                                },
+                                                                                {
+                                                                                    "headerName":  "Title",
+                                                                                    "field":  "Title"
                                                                                 },
                                                                                 {
                                                                                     "headerName":  "Department",
                                                                                     "field":  "department"
                                                                                 },
                                                                                 {
-                                                                                    "headerName":  "Display Name",
-                                                                                    "field":  "displayName"
-                                                                                },
-                                                                                {
                                                                                     "headerName":  "Company",
                                                                                     "field":  "Company"
-                                                                                },
-                                                                                {
-                                                                                    "headerName":  "Title",
-                                                                                    "field":  "Title"
                                                                                 }
                                                                             ],
                                                                 "height":  300,

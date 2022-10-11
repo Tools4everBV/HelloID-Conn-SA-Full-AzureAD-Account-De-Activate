@@ -1,22 +1,26 @@
 [
     {
-        "key":  "department",
-        "type":  0
-    },
-    {
         "key":  "Title",
         "type":  0
     },
     {
-        "key":  "UserPrincipalName",
-        "type":  0
-    },
-    {
-        "key":  "displayName",
+        "key":  "Department",
         "type":  0
     },
     {
         "key":  "Company",
+        "type":  0
+    },
+    {
+        "key":  "DisplayName",
+        "type":  0
+    },
+    {
+        "key":  "Id",
+        "type":  0
+    },
+    {
+        "key":  "UserPrincipalName",
         "type":  0
     }
 ]
