@@ -1,3 +1,21 @@
+⚠️ **DEPRECATED** - This repository has been deprecated.
+
+The functionality in this repository has been split into two separate repositories for better maintainability and access control:
+
+- **Account Enable**: [HelloID-Conn-SA-Full-Microsoft-EntraID-AccountEnable](https://github.com/Tools4everBV/HelloID-Conn-SA-Full-Microsoft-EntraID-AccountEnable)
+- **Account Disable**: [HelloID-Conn-SA-Full-Microsoft-EntraID-AccountDisable](https://github.com/Tools4everBV/HelloID-Conn-SA-Full-Microsoft-EntraID-AccountDisable)
+
+## Benefits of the Split
+
+- **Granular Access Control**: Assign different permissions to different roles based on your organizational needs (e.g., enable permissions to system admins, disable permissions to the service desk)
+- **Improved Performance**: Each form only queries the relevant subset of users:
+  - Enable form queries only disabled users
+  - Disable form queries only enabled users
+  - Eliminates unnecessary user state queries and filtering
+- **Better Separation of Concerns**: Each repository has a single, focused responsibility
+
+Please migrate to the appropriate repository above based on your needs.
+
 # HelloID-Conn-SA-Full-EntraID-Account-De-Activate
 
 | :information_source: Information |
